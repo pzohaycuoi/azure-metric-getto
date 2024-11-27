@@ -1,0 +1,9 @@
+{
+    "configurations": [
+        {
+            "name": "PowerShell: Attach to PowerShell Host Process",
+            "type": "PowerShell",
+            "request": "attach"
+        }
+    ]
+}

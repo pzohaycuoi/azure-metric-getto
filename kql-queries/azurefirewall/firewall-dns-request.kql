@@ -1,0 +1,13 @@
+// Azure Firewall DNS proxy log data 
+// Start from this query if you want to understand the Firewall DNS proxy log data. This query will show the last 100 log records but by adding simple filter statements at the end of the query the results can be tweaked. 
+// DNS proxy log data 
+// Parses the DNS proxy log data. 
+AzureDiagnostics
+| where Category == "AzureFirewallDnsProxy"
+| parse msg_s with "DNS Request: " SourceIP ":" SourcePortInt:int " - " QueryID:int " " RequestType " " RequestClass " " hostname ". " protocol " " details
+| extend
+    ResponseDuration = extract("[0-9]*.?[0-9]+s$", 0, msg_s),
+    SourcePort = tostring(SourcePortInt),
+    QueryID =  tostring(QueryID)
+| summarize TotalRequest = count() by SourceIP,hostname,RequestType
+| project SourceIP,hostname,RequestType,TotalRequest
