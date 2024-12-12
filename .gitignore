@@ -1,3 +1,4 @@
 *.csv
 mockdata/*
 result/*
+.DS_STORE*

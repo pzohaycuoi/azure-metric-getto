@@ -10,13 +10,17 @@ param (
 
 $MetricList = Get-Content -Path ./MetricsToCollect.csv | ConvertFrom-Csv  #TODO: maybe add class for datamodel?
 $JobMapping = @{
-    Vm            = "./result/VmMetrics.csv"
-    FunctionApp   = "./result/FunctionAppMetrics.csv"
-    LogicApp      = "./result/LogicAppMetrics.csv"
-    MySQL         = "./result/MySQL.csv"
-    AzureSQL      = "./result/AzureSQL.csv"
-    AKS           = "./result/AKS.csv"
-    AzureFirewall = "./result/AzureFirewall.csv"
+    Vm             = "./result/VmMetrics.csv"
+    FunctionApp    = "./result/FunctionAppMetrics.csv"
+    LogicApp       = "./result/LogicAppMetrics.csv"
+    MySQL          = "./result/MySQL.csv"
+    AzureSQL       = "./result/AzureSQL.csv"
+    AKS            = "./result/AKS.csv"
+    AzureFirewall  = "./result/AzureFirewall.csv"
+    AppServicePlan = "./result/AppServicePlan.csv"
+    VMScaleSet     = "./result/VMScaleSet.csv"
+    Disk           = "./result/Disk.csv"
+    CosmosDB       = "./result/CosmosDB.csv"
 }
 $RgList = Get-AzResourceGroup
 
@@ -81,6 +85,40 @@ $MetricDefinitions = $MetricList | Where-Object resourcetype -eq "AzureFirewall"
 Start-Job -Name "GetMetric-AzureFirewall" -InitializationScript { . ./Get-ResourceMetric.ps1 } -ScriptBlock {
     Get-ResourceMetric -StartDate $using:StartDate -EndDate $using:EndDate `
         -MetricDefinitions $using:MetricDefinitions -Resources $using:AzureFirewalls 
+}
+
+# AppServicePlan
+$AppServicePlans = Get-AzAppServicePlan
+$MetricDefinitions = $MetricList | Where-Object resourcetype -eq "AppServicePlan"
+Start-Job -Name "GetMetric-AppServicePlan" -InitializationScript { . ./Get-ResourceMetric.ps1 } -ScriptBlock {
+    Get-ResourceMetric -StartDate $using:StartDate -EndDate $using:EndDate `
+        -MetricDefinitions $using:MetricDefinitions -Resources $using:AppServicePlans 
+}
+
+# VMScaleSet
+$VMScaleSets = Get-AzVmss
+$MetricDefinitions = $MetricList | Where-Object resourcetype -eq "VMScaleSet"
+Start-Job -Name "GetMetric-VMScaleSet" -InitializationScript { . ./Get-ResourceMetric.ps1 } -ScriptBlock {
+    Get-ResourceMetric -StartDate $using:StartDate -EndDate $using:EndDate `
+        -MetricDefinitions $using:MetricDefinitions -Resources $using:VMScaleSets 
+}
+
+# Disk
+$Disks = Get-AzDisk
+$MetricDefinitions = $MetricList | Where-Object resourcetype -eq "Disk"
+Start-Job -Name "GetMetric-Disk" -InitializationScript { . ./Get-ResourceMetric.ps1 } -ScriptBlock {
+    Get-ResourceMetric -StartDate $using:StartDate -EndDate $using:EndDate `
+        -MetricDefinitions $using:MetricDefinitions -Resources $using:Disks 
+}
+
+# CosmosDB
+$CosmosDBs = $RgList | ForEach-Object -ThrottleLimit 5 -Parallel {
+    Get-AzCosmosDBAccount -ResourceGroupName $_.ResourceGroupName
+}
+$MetricDefinitions = $MetricList | Where-Object resourcetype -eq "CosmosDB"
+Start-Job -Name "GetMetric-CosmosDB" -InitializationScript { . ./Get-ResourceMetric.ps1 } -ScriptBlock {
+    Get-ResourceMetric -StartDate $using:StartDate -EndDate $using:EndDate `
+        -MetricDefinitions $using:MetricDefinitions -Resources $using:CosmosDBs 
 }
 
 # Export report
